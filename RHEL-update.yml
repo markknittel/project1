@@ -1,0 +1,20 @@
+---
+- name: Update RHEL system using dnf
+  hosts: all
+  become: true
+  tasks:
+    - name: Update all packages to the latest version
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+
+#    - name: Remove unused packages (optional cleanup)
+#      ansible.builtin.dnf:
+#        autoremove: yes
+
+#    - name: Clear the dnf cache (optional cleanup)
+#      ansible.builtin.dnf:
+#        state: latest
+#        update_cache: yes
+#        cacheonly: no
+#        releasever: auto
