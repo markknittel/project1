@@ -1,0 +1,35 @@
+---
+- name: Configure Subscription Manager on RHEL
+  hosts: all
+  become: true
+  vars:
+    # Red Hat credentials for username/password authentication
+    rhsm_username: "<your_username>" 
+    rhsm_password: "<your_password>"
+
+  tasks:
+    - name: Ensure subscription-manager is installed
+      ansible.builtin.dnf:
+        name: subscription-manager
+        state: present
+
+    - name: Register the system with username/password
+      ansible.builtin.shell: |
+        subscription-manager register --username {{ rhsm_username }} --password {{ rhsm_password }}
+      register: register_output
+      failed_when: "'already registered' not in register_output.stdout and register_output.rc != 0"
+      changed_when: "'already registered' not in register_output.stdout"
+
+    - name: Attach the system to available subscriptions
+      ansible.builtin.shell: subscription-manager attach --auto
+      register: attach_output
+      failed_when: "'No subscriptions available' in attach_output.stderr"
+      changed_when: "'Successfully attached' in attach_output.stdout"
+
+    - name: Verify subscription status
+      ansible.builtin.shell: subscription-manager status
+      register: status_output
+
+    - name: Print subscription status
+      ansible.builtin.debug:
+        msg: "{{ status_output.stdout }}"
