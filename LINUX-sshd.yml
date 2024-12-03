@@ -1,0 +1,75 @@
+---
+- name: Setup SSHD for Ansible Access
+  hosts: all
+  become: true
+  vars:
+    ansible_user: "ansible"
+    ansible_public_key: "YOUR_PUBLIC_SSH_KEY_HERE" # Replace with your actual public key
+
+  tasks:
+    - name: Ensure SSH server is installed
+      ansible.builtin.apt:
+        name: openssh-server
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure SSH server is installed
+      ansible.builtin.dnf:
+        name: openssh-server
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Ensure SSH service is running and enabled
+      ansible.builtin.service:
+        name: sshd
+        state: started
+        enabled: true
+
+#    - name: Configure SSHD to allow public key authentication
+#      ansible.builtin.lineinfile:
+#        path: /etc/ssh/sshd_config
+#        regexp: "^#?PasswordAuthentication"
+#        line: "PasswordAuthentication no"
+#        state: present
+#        backup: true
+
+#    - name: Configure SSHD to allow key-based login
+#      ansible.builtin.lineinfile:
+#        path: /etc/ssh/sshd_config
+#        regexp: "^#?PubkeyAuthentication"
+#        line: "PubkeyAuthentication yes"
+#        state: present
+#        backup: true
+
+    - name: Ensure the ansible user exists
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        state: present
+        shell: /bin/bash
+
+    - name: Add the ansible user to the wheel group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: wheel
+        append: true
+
+    - name: Create .ssh directory for ansible user
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.ssh"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0700'
+
+    - name: Add authorized key for ansible user
+      ansible.builtin.copy:
+        content: "{{ ansible_public_key }}"
+        dest: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+
+    - name: Restart SSH service to apply changes
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
