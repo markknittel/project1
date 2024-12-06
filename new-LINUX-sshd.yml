@@ -1,0 +1,52 @@
+---
+- name: Setup SSHD for Ansible Access
+  hosts: all
+  become: true
+  vars:
+    ansible_user: "ansible"
+    ansible_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQ259ETa+MjqoduXwUIXgUAhMCoYDDiHlXeWWT0fokDILJlbRxRz2+QvIEPl8crboL8kBYWQEtIL+vmkKKGij/P6/ybZz3dBtbqoyNHgjLQHnZyTKnOIDh9u56e2PyJBL4o77F8bt53MbBRXeZKwq4F2JYP/WjrXc5f7H5qhbiHGJir/k0GUySVhC3g7yHPwyllPA+B9teI60MxpuBmW9E6TOc6qa0EUULdVjCr7GMt3bMUiD1nhGRPPOH9aOU+lHn/1BZ28b8pbAy30m4BLFSDDx3QpwOCuGpw4AYQgPluTSPywlnBMEy4XhuqE21WsV2RZzAUwTF9rd3r3y060X4VtaFb0HJW/lCEJQwB4U6BbqkG3GckMjMBe5O9psFh4qubsYobC2P6rF3+CdGfYhuJ1VOY39XE/HVr8sNYiVRSb/4em3kqO3qdB6KEE7WMGkQrWxQ+LMi/WI52dvqeDZtt6X3mZ7Zl7N0XnxrHmOzrNqYoyioX0mvyB6D5w7bumM= mknittel" # Replace with your actual public key
+
+  tasks:
+    - name: Ensure SSH server is installed
+      ansible.builtin.apt:
+        name: openssh-server
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure SSH server is installed
+      ansible.builtin.dnf:
+        name: openssh-server
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Ensure SSH service is running and enabled
+      ansible.builtin.service:
+        name: sshd
+        state: started
+        enabled: true
+
+    - name: Ensure the ansible user exists
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        state: present
+        shell: /bin/bash
+
+    - name: Add the ansible user to the wheel group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: wheel
+        append: true
+
+    - name: Create .ssh directory for ansible user
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.ssh"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0700'
+
+    - name: Add authorized key for user
+      ansible.builtin.authorized_key:
+        user: "{{ ansible_user }}"
+        state: present
+        key: "{{ ansible_public_key }}"
