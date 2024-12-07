@@ -3,8 +3,8 @@
   hosts: all
   become: true
   vars:
-    ansible_user: "ansible"
-    ansible_public_key: "YOUR_PUBLIC_SSH_KEY_HERE" # Replace with your actual public key
+    user_var: "derek"
+    public_key_var: "YOUR_PUBLIC_SSH_KEY_HERE" # Replace with your actual public key
 
   tasks:
     - name: Ensure SSH server is installed
@@ -43,30 +43,30 @@
 
     - name: Ensure the ansible user exists
       ansible.builtin.user:
-        name: "{{ ansible_user }}"
+        name: "{{ user_var }}"
         state: present
         shell: /bin/bash
 
     - name: Add the ansible user to the wheel group
       ansible.builtin.user:
-        name: "{{ ansible_user }}"
+        name: "{{ user_var }}"
         groups: wheel
         append: true
 
     - name: Create .ssh directory for ansible user
       ansible.builtin.file:
-        path: "/home/{{ ansible_user }}/.ssh"
+        path: "/home/{{ user_var }}/.ssh"
         state: directory
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        owner: "{{ user_var }}"
+        group: "{{ user_var }}"
         mode: '0700'
 
     - name: Add authorized key for ansible user
       ansible.builtin.copy:
-        content: "{{ ansible_public_key }}"
-        dest: "/home/{{ ansible_user }}/.ssh/authorized_keys"
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        content: "{{ public_key_var }}"
+        dest: "/home/{{ user_var }}/.ssh/authorized_keys"
+        owner: "{{ user_var }}"
+        group: "{{ user_var }}"
         mode: '0600'
 
     - name: Restart SSH service to apply changes
